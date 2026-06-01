@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>주식 평단가 계산기</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            margin: 10px;
+            background-color: #f5f6f9;
+            color: #333;
+            font-size: 13px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .btn-full {
+            width: 100%;
+            height: 38px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 12px;
+            color: white;
+            box-sizing: border-box;
+        }
+        
+        .btn-view-all { 
+            background-color: #2b6cb0; 
+            margin-top: 8px;
+        }
+        .btn-view-all:hover { background-color: #2c5282; }
+
+        /* 데이터 입력창 폼 (항상 표시 및 2칸씩 가로 정렬) */
+        .input-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: #fff;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+            box-sizing: border-box;
+        }
+        .input-form .form-row {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+        .input-form .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1; /* 각 요소가 50%의 너비를 가지도록 설정 */
+            box-sizing: border-box;
+        }
+        .input-form .form-group label {
+            font-size: 12px;
+            font-weight: bold;
+            color: #4a5568;
+        }
+        
+        .input-form .form-group input, .input-form .form-group select {
+            padding: 8px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+            height: 40px;
+            width: 100%;
+            background-color: #fff;
+            font-family: inherit;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+        .btn-submit {
+            height: 40px;
+            background-color: #2b6cb0;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            margin-top: 5px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        /* 투자 현황 대시보드 */
+        .summary-box {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .summary-item {
+            display: flex;
+            flex-direction: column;
+        }
+        .summary-item label {
+            font-size: 11px;
+            color: #718096;
+            margin-bottom: 3px;
+        }
+        .summary-item span, .summary-item input {
+            font-size: 14px;
+            font-weight: bold;
+            border: none;
+            background: transparent;
+        }
+        
+        .summary-item input {
+            border-bottom: 2px solid #cbd5e0;
+            padding: 2px 0;
+            outline: none;
+            width: 100%;
+        }
+        .summary-item.input-highlight input {
+            border-bottom: 2px solid #3182ce;
+            color: #333;
+        }
+
+        /* 하단 사용자/종목 전환 컨테이너 */
+        .select-container {
+            background-color: #edf2f7;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e0;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .select-row {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .select-row label {
+            font-size: 12px;
+            font-weight: bold;
+            color: #2b6cb0;
+        }
+        .select-dropdown {
+            width: 100%;
+            height: 40px;
+            padding: 8px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #4a5568;
+            background-color: #fff;
+            box-sizing: border-box;
+        }
+
+        /* 모바일 최적화 테이블 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            table-layout: fixed;
+        }
+        th, td {
+            border: 1px solid #e2e8f0;
+            padding: 6px 4px;
+            font-size: 13px;
+            box-sizing: border-box;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        th {
+            background-color: #edf2f7;
+            color: #4a5568;
+            font-weight: bold;
+            text-align: center;
+            font-size: 12px;
+            line-height: 1.4;
+            padding: 8px 4px;
+        }
+        
+        .col-1 { width: 33.33%; text-align: center; }
+        .col-2 { width: 33.33%; text-align: center; }
+        .col-3 { width: 33.33%; text-align: right; padding-right: 6px; }
+
+        .row-main {
+            background-color: #ffffff;
+        }
+        .row-sub {
+            background-color: #f8fafc;
+            border-bottom: 2px solid #cbd5e0;
+        }
+        
+        .clickable-date {
+            font-size: 11px; 
+            font-weight: bold; 
+            color: #2b6cb0; 
+            vertical-align: middle;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        
+        .lbl-desc {
+            font-size: 10px;
+            color: #94a3b8;
+            display: block;
+            margin-bottom: 2px;
+            font-weight: normal;
+        }
+        .val-data {
+            font-weight: bold;
+            font-size: 13px;
+        }
+        
+        .type-buy { color: #e53e3e; font-weight: bold; }
+        .type-sell { color: #3182ce; font-weight: bold; }
+        .plus { color: #e53e3e; font-weight: bold; }
+        .minus { color: #3182ce; font-weight: bold; }
+        
+        .view-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 5px;
+            color: #2b6cb0;
+            line-height: 1.5;
+        }
+
+        /* 모달 팝업창 레이아웃 스타일 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        .modal-content {
+            background: white;
+            width: 100%;
+            max-width: 750px;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            box-sizing: border-box;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #cbd5e0;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+        .modal-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #2b6cb0;
+        }
+        .modal-table th, .modal-table td {
+            padding: 8px 4px;
+            font-size: 12px;
+        }
+        
+        /* 자산 비중 그래픽 바 스타일 */
+        .proportion-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+        }
+        .proportion-bar {
+            width: 100%;
+            height: 5px;
+            background-color: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .proportion-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3182ce, #4299e1);
+            border-radius: 3px;
+        }
+
+        .action-modal-content {
+            max-width: 300px;
+        }
+        .action-modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .btn-action-modal {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>주식 매매 내역 및 평단가 계산기</h2>
+
+    <div class="input-form" id="inputForm">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="tradeDate">날짜</label>
+                <input type="date" id="tradeDate">
+            </div>
+            <div class="form-group">
+                <label for="tradeType">구분</label>
+                <select id="tradeType" onchange="toggleInputFields()">
+                    <option value="매수">매수</option>
+                    <option value="매도">매도</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label id="priceLabel" for="tradePrice">매수가 (원)</label>
+                <input type="number" id="tradePrice" placeholder="금액 입력">
+            </div>
+            <div class="form-group">
+                <label id="qtyLabel" for="tradeQty">체결수량 (주)</label>
+                <input type="number" id="tradeQty" placeholder="수량 입력">
+            </div>
+        </div>
+        <button class="btn-submit" id="submitBtn" type="button" onclick="handleSubmit()">내역 추가</button>
+    </div>
+
+    <div class="summary-box">
+        <div class="summary-item">
+            <label id="seedMoneyLabel">종목별 씨드머니 (원)</label>
+            <input type="text" id="seedMoney" value="10,000,000" oninput="formatInputValue(this); saveSeedMoney(); calculateAll();">
+        </div>
+        <div class="summary-item">
+            <label>현재 잔고 (해당종목 예수금)</label>
+            <span id="currentBalance">0 원</span>
+        </div>
+        <div class="summary-item">
+            <label>보유 수량</label>
+            <span id="totalQuantity">0 주</span>
+        </div>
+        <div class="summary-item">
+            <label>현재 평단가</label>
+            <span id="avgPrice">0 원</span>
+        </div>
+        <div class="summary-item input-highlight">
+            <label>📊 현재가 입력 (원)</label>
+            <input type="text" id="currentPrice" placeholder="조회 중..." oninput="formatInputValue(this); updateStockPriceMap();">
+        </div>
+        <div class="summary-item">
+            <label>총 매입금액</label>
+            <span id="totalPurchaseAmount">0 원</span>
+        </div>
+        <div class="summary-item">
+            <label>총 평가금액</label>
+            <span id="totalEvaluationAmount">0 원</span>
+        </div>
+        <div class="summary-item">
+            <label>평가손익 (수익률)</label>
+            <span id="evaluationProfit">0 원 (0.00%)</span>
+        </div>
+        <div class="summary-item">
+            <label>총 실현손익 (해당종목)</label>
+            <span id="totalProfit">0 원</span>
+        </div>
+    </div>
+
+    <div class="select-container">
+        <div class="select-row">
+            <label for="userSelect">👤 사용자 선택</label>
+            <select class="select-dropdown" id="userSelect" onchange="handleUserChange(this.value)"></select>
+            <button class="btn-full btn-view-all" onclick="openUserDashboard()">📂 보유 종목 전체 현황 한눈에 보기</button>
+        </div>
+        <div class="select-row">
+            <label for="stockSelect">📈 종목 선택</label>
+            <select class="select-dropdown" id="stockSelect" onchange="handleStockChange(this.value)"></select>
+        </div>
+    </div>
+
+    <div class="view-title" id="viewTitle" style="margin-bottom: 15px; text-align: center;"></div>
+
+    <div>
+        <table>
+            <thead>
+                <tr>
+                    <th class="col-1">날짜<br>평단가</th>
+                    <th class="col-2">구분<br>수량</th>
+                    <th class="col-3">정산 금액<br>체결 상세</th>
+                </tr>
+            </thead>
+            <tbody id="tradeLogBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal-overlay" id="dashboardModal" onclick="closeUserDashboard(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <div class="modal-title" id="modalTitle">사용자 보유 현황</div>
+            <button class="modal-close" onclick="closeUserDashboard(null)">×</button>
+        </div>
+        <div style="overflow-x: auto;">
+            <table class="modal-table">
+                <thead>
+                    <tr>
+                        <th style="width: 25%;">종목명(코드)</th>
+                        <th style="width: 15%;">보유수량</th>
+                        <th style="width: 18%;">현재 평단가</th>
+                        <th style="width: 24%;">총 매입금액 (자산 비중)</th>
+                        <th style="width: 18%;">총 실현손익</th>
+                    </tr>
+                </thead>
+                <tbody id="modalTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="actionModal" onclick="closeActionModal()">
+    <div class="modal-content action-modal-content" onclick="event.stopPropagation()">
+        <div class="modal-title" style="margin-bottom: 10px;">📋 매매 내역 제어</div>
+        <div id="actionModalDesc" style="font-size: 13px; color:#718096; line-height: 1.5;">선택한 내역을 변경합니다.</div>
+        <div class="action-modal-buttons">
+            <button class="btn-action-modal" style="background-color: #dd6b20;" onclick="triggerEditFromModal()">수정</button>
+            <button class="btn-action-modal" style="background-color: #e53e3e;" onclick="triggerDeleteFromModal()">삭제</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 사용자 및 종목 하드코딩 (수정/삭제 불가)
+    const users = ["남호문", "이순남", "김수희"];
+    const stocks = [
+        { name: "Tiger 삼성전자단일종목레버리지", code: "0195R0" },
+        { name: "Tiger SK하이닉스단일종목레버리지", code: "0195S0" }
+    ];
+    let tradeLogs = [];
+    let stockPrices = {};
+    
+    let globalCalculatedAvgPrice = 0;
+    let globalCalculatedQty = 0;
+    let editIndex = -1; 
+    let selectedTargetIndex = -1; 
+
+    window.onload = function() {
+        document.getElementById('tradeDate').value = new Date().toISOString().substring(0, 10);
+        loadFromLocalStorage();
+        renderSelectOptions();
+        loadSeedMoney(); 
+        calculateAll();
+    };
+
+    function saveToLocalStorage() {
+        // users, stocks는 하드코딩 되어있으므로 저장 생략
+        localStorage.setItem('calculator_tradeLogs', JSON.stringify(tradeLogs));
+        localStorage.setItem('calculator_stockPrices', JSON.stringify(stockPrices));
+    }
+
+    function saveSeedMoney() {
+        const currentUser = document.getElementById('userSelect').value;
+        const currentStock = document.getElementById('stockSelect').value;
+        if (!currentUser || !currentStock) return;
+        const seedMoney = document.getElementById('seedMoney').value;
+        localStorage.setItem(`calculator_seedMoney_${currentUser}_${currentStock}`, seedMoney);
+    }
+
+    function loadSeedMoney() {
+        const currentUser = document.getElementById('userSelect').value;
+        const currentStock = document.getElementById('stockSelect').value;
+        if (!currentUser || !currentStock) {
+            document.getElementById('seedMoney').value = "10,000,000";
+            return;
+        }
+        const storedSeed = localStorage.getItem(`calculator_seedMoney_${currentUser}_${currentStock}`);
+        document.getElementById('seedMoney').value = storedSeed ? storedSeed : "10,000,000";
+    }
+
+    function loadFromLocalStorage() {
+        // users, stocks는 하드코딩 되어있으므로 불러오기 생략
+        const storedLogs = localStorage.getItem('calculator_tradeLogs');
+        const storedPrices = localStorage.getItem('calculator_stockPrices');
+
+        if (storedLogs) tradeLogs = JSON.parse(storedLogs);
+        if (storedPrices) stockPrices = JSON.parse(storedPrices);
+    }
+
+    function formatInputValue(input) {
+        let value = input.value.replace(/[^0-9]/g, '');
+        if(value) {
+            input.value = parseFloat(value).toLocaleString();
+        } else {
+            input.value = '';
+        }
+    }
+
+    function renderSelectOptions() {
+        const userSelect = document.getElementById('userSelect');
+        const stockSelect = document.getElementById('stockSelect');
+        
+        const currentSelectedUser = userSelect.value || users[0];
+        const currentSelectedStock = stockSelect.value || (stocks[0] ? stocks[0].name : '');
+
+        const userOptionsHTML = users.map(u => `<option value="${u}">${u}</option>`).join('');
+        userSelect.innerHTML = userOptionsHTML;
+        userSelect.value = currentSelectedUser;
+        
+        const stockOptionsHTML = stocks.map(s => {
+            const displayLabel = s.code ? `${s.name} (${s.code})` : s.name;
+            return `<option value="${s.name}">${displayLabel}</option>`;
+        }).join('');
+
+        stockSelect.innerHTML = stockOptionsHTML;
+        stockSelect.value = currentSelectedStock;
+    }
+
+    function handleUserChange(userName) {
+        document.getElementById('userSelect').value = userName;
+        loadSeedMoney();
+        calculateAll();
+    }
+
+    function handleStockChange(stockName) {
+        document.getElementById('stockSelect').value = stockName;
+        loadSeedMoney();
+        calculateAll();
+    }
+
+    function toggleInputFields() {
+        const type = document.getElementById('tradeType').value;
+        const priceLabel = document.getElementById('priceLabel');
+        const qtyLabel = document.getElementById('qtyLabel');
+        priceLabel.innerText = type === '매수' ? '매수가 (원)' : '매도가 (원)';
+        qtyLabel.innerText = type === '매수' ? '체결수량 (주)' : '매도수량 (주)';
+    }
+
+    function handleSubmit() {
+        const currentUser = document.getElementById('userSelect').value;
+        const currentStock = document.getElementById('stockSelect').value;
+        const date = document.getElementById('tradeDate').value;
+        const type = document.getElementById('tradeType').value;
+        const price = parseFloat(document.getElementById('tradePrice').value);
+        const qty = parseFloat(document.getElementById('tradeQty').value);
+
+        if (!currentUser || !currentStock) return alert('사용자와 종목을 먼저 선택해주세요.');
+        if (!date || isNaN(price) || isNaN(qty) || price <= 0 || qty <= 0) return alert('올바른 값을 입력해주세요.');
+
+        if (editIndex > -1) {
+            tradeLogs[editIndex] = { user: currentUser, stock: currentStock, date, type, price, qty };
+            editIndex = -1;
+        } else {
+            tradeLogs.push({ user: currentUser, stock: currentStock, date, type, price, qty });
+        }
+
+        resetForm();
+        saveToLocalStorage();
+        calculateAll();
+    }
+
+    function showActionModal(globalIndex) {
+        selectedTargetIndex = globalIndex;
+        const log = tradeLogs[globalIndex];
+        if(!log) return;
+        
+        document.getElementById('actionModalDesc').innerHTML = `
+            <strong>${log.date} [${log.type}]</strong><br>
+            체결가: ${log.price.toLocaleString()}원 / 수량: ${log.qty.toLocaleString()}주<br><br>
+            수행할 작업을 선택하세요.
+        `;
+        document.getElementById('actionModal').style.display = 'flex';
+    }
+
+    function closeActionModal() {
+        document.getElementById('actionModal').style.display = 'none';
+    }
+
+    function triggerEditFromModal() {
+        closeActionModal();
+        const log = tradeLogs[selectedTargetIndex];
+        if(!log) return;
+
+        editIndex = selectedTargetIndex;
+
+        document.getElementById('tradeDate').value = log.date;
+        document.getElementById('tradeType').value = log.type;
+        document.getElementById('tradePrice').value = log.price;
+        document.getElementById('tradeQty').value = log.qty;
+
+        toggleInputFields();
+        
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.innerText = "내역 수정 완료";
+        submitBtn.classList.add('btn-edit-mode');
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function triggerDeleteFromModal() {
+        closeActionModal();
+        if(editIndex === selectedTargetIndex) {
+            alert('현재 수정 중인 내역은 삭제할 수 없습니다. 수정을 완료한 뒤 진행해주세요.');
+            return;
+        }
+        if(!confirm("선택하신 매매 내역을 정말 삭제하시겠습니까?")) return;
+        
+        tradeLogs.splice(selectedTargetIndex, 1);
+        if (editIndex > selectedTargetIndex) editIndex--; 
+        
+        saveToLocalStorage();
+        calculateAll();
+    }
+
+    function resetForm() {
+        editIndex = -1;
+        document.getElementById('tradeDate').value = new Date().toISOString().substring(0, 10);
+        document.getElementById('tradeType').value = '매수';
+        document.getElementById('tradePrice').value = '';
+        document.getElementById('tradeQty').value = '';
+        toggleInputFields();
+
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.innerText = "내역 추가";
+        submitBtn.classList.remove('btn-edit-mode');
+    }
+
+    function updateStockPriceMap() {
+        const currentStock = document.getElementById('stockSelect').value;
+        if (currentStock) {
+            stockPrices[currentStock] = document.getElementById('currentPrice').value;
+        }
+        saveToLocalStorage();
+        calculateRealtimeMetrics();
+    }
+
+    function calculateRealtimeMetrics() {
+        const currentPriceRaw = document.getElementById('currentPrice').value.replace(/,/g, '');
+        const currentPrice = parseFloat(currentPriceRaw) || 0;
+        
+        const totalPurchaseAmount = globalCalculatedAvgPrice * globalCalculatedQty;
+        const totalEvaluationAmount = currentPrice * globalCalculatedQty;
+        
+        let evaluationProfit = 0;
+        let evaluationProfitRate = 0;
+        
+        if (globalCalculatedQty > 0 && globalCalculatedAvgPrice > 0) {
+            evaluationProfit = totalEvaluationAmount - totalPurchaseAmount;
+            evaluationProfitRate = (evaluationProfit / totalPurchaseAmount) * 100;
+        }
+
+        document.getElementById('totalPurchaseAmount').innerText = totalPurchaseAmount.toLocaleString() + " 원";
+        document.getElementById('totalEvaluationAmount').innerText = totalEvaluationAmount.toLocaleString() + " 원";
+        
+        const currentPriceInput = document.getElementById('currentPrice');
+        if (currentPrice === 0 || globalCalculatedQty === 0) {
+            currentPriceInput.style.color = "#333";
+        } else if (currentPrice > globalCalculatedAvgPrice) {
+            currentPriceInput.style.color = "#e53e3e";
+        } else if (currentPrice < globalCalculatedAvgPrice) {
+            currentPriceInput.style.color = "#3182ce";
+        } else {
+            currentPriceInput.style.color = "#333";
+        }
+
+        const evalProfitSpan = document.getElementById('evaluationProfit');
+        if (currentPrice === 0 || globalCalculatedQty === 0) {
+            evalProfitSpan.innerText = "0 원 (0.00%)";
+            evalProfitSpan.className = "";
+        } else {
+            let sign = evaluationProfit > 0 ? "+" : "";
+            evalProfitSpan.innerText = `${sign}${evaluationProfit.toLocaleString()} 원 (${sign}${evaluationProfitRate.toFixed(2)}%)`;
+            evalProfitSpan.className = evaluationProfit > 0 ? "plus" : (evaluationProfit < 0 ? "minus" : "");
+        }
+    }
+
+    function fetchCurrentPrice(stockCode) {
+        if (!stockCode) return;
+        
+        const currentPriceInput = document.getElementById('currentPrice');
+        currentPriceInput.value = "조회 중...";
+
+        const yahooTicker = stockCode.endsWith('.KS') || stockCode.endsWith('.KQ') ? stockCode : `${stockCode}.KS`;
+        const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooTicker}?interval=1m&range=1d`;
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+
+        fetch(proxyUrl)
+            .then(response => {
+                if (response.ok) return response.json();
+                throw new Error('네트워크 응답에 문제가 있습니다.');
+            })
+            .then(data => {
+                const rawJson = JSON.parse(data.contents);
+                
+                if (rawJson && rawJson.chart && rawJson.chart.result && rawJson.chart.result[0]) {
+                    const meta = rawJson.chart.result[0].meta;
+                    const closePrice = meta.regularMarketPrice || meta.previousClose;
+                    
+                    if (closePrice) {
+                        const currentStock = document.getElementById('stockSelect').value;
+                        currentPriceInput.value = Number(closePrice).toLocaleString();
+                        stockPrices[currentStock] = Number(closePrice).toLocaleString();
+                        
+                        saveToLocalStorage();
+                        calculateRealtimeMetrics();
+                    } else {
+                        throw new Error('가격 데이터 파싱 실패');
+                    }
+                } else {
+                    throw new Error('잘못된 데이터 구조 또는 코드를 확인하세요.');
+                }
+            })
+            .catch(error => {
+                console.error("현재가 조회 실패:", error);
+                currentPriceInput.value = "";
+                currentPriceInput.placeholder = "조회 실패 (수동 입력)";
+            });
+    }
+
+    function calculateCurrentBalance(currentUser, currentStock, seedMoney) {
+        let currentBalance = seedMoney;
+        tradeLogs.forEach(log => {
+            if (log.user === currentUser && log.stock === currentStock) {
+                if (log.type === '매수') currentBalance -= (log.price * log.qty);
+                if (log.type === '매도') currentBalance += (log.price * log.qty);
+            }
+        });
+        document.getElementById('currentBalance').innerText = currentBalance.toLocaleString() + " 원";
+    }
+
+    function openUserDashboard() {
+        const currentUser = document.getElementById('userSelect').value;
+        if (!currentUser) return alert('사용자를 먼저 선택해 주세요.');
+
+        document.getElementById('modalTitle').innerText = `👤 [${currentUser}] 보유 종목 전체 현황 한눈에 보기`;
+        const tbody = document.getElementById('modalTableBody');
+        tbody.innerHTML = '';
+
+        const userStocks = [...new Set(tradeLogs.filter(log => log.user === currentUser).map(log => log.stock))];
+
+        if(userStocks.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="color:#718096; padding:20px;">매매 내역이 존재하지 않습니다.</td></tr>`;
+            document.getElementById('dashboardModal').style.display = 'flex';
+            return;
+        }
+
+        let calculatedStocksData = [];
+        let totalPortfolioPurchaseAmount = 0;
+
+        userStocks.forEach(stockName => {
+            let currentQty = 0;
+            let currentAvgPrice = 0;
+            let totalProfit = 0;
+
+            tradeLogs.forEach(log => {
+                if (log.user !== currentUser || log.stock !== stockName) return;
+
+                let tradeAmount = log.price * log.qty;
+
+                if (log.type === '매수') {
+                    let totalCost = (currentAvgPrice * currentQty) + tradeAmount;
+                    currentQty += log.qty;
+                    currentAvgPrice = currentQty > 0 ? Math.round(totalCost / currentQty) : 0;
+                } else if (log.type === '매도') {
+                    if (log.qty <= currentQty) {
+                        let profit = (log.price - currentAvgPrice) * log.qty;
+                        totalProfit += profit;
+                        currentQty -= log.qty;
+                        if (currentQty === 0) currentAvgPrice = 0;
+                    }
+                }
+            });
+
+            let totalPurchaseAmount = currentAvgPrice * currentQty;
+            totalPortfolioPurchaseAmount += totalPurchaseAmount;
+
+            calculatedStocksData.push({
+                stockName, currentQty, currentAvgPrice, totalPurchaseAmount, totalProfit
+            });
+        });
+
+        calculatedStocksData.forEach(data => {
+            let profitClass = data.totalProfit > 0 ? "plus" : (data.totalProfit < 0 ? "minus" : "");
+            let profitSign = data.totalProfit > 0 ? "+" : "";
+
+            const targetStockObj = stocks.find(s => s.name === data.stockName);
+            const codeDisplay = (targetStockObj && targetStockObj.code) ? `(${targetStockObj.code})` : '';
+
+            let proportionRate = totalPortfolioPurchaseAmount > 0 
+                ? ((data.totalPurchaseAmount / totalPortfolioPurchaseAmount) * 100).toFixed(1) 
+                : "0.0";
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="text-left">${data.stockName}${codeDisplay}</td>
+                <td class="text-center" style="font-weight:bold;">${data.currentQty.toLocaleString()} 주</td>
+                <td>${data.currentAvgPrice.toLocaleString()} 원</td>
+                <td>
+                    <div class="proportion-container">
+                        <div><strong>${data.totalPurchaseAmount.toLocaleString()} 원</strong> <span style="font-size:11px; color:#718096;">(${proportionRate}%)</span></div>
+                        <div class="proportion-bar">
+                            <div class="proportion-fill" style="width: ${proportionRate}%;"></div>
+                        </div>
+                    </div>
+                </td>
+                <td class="${profitClass}" style="font-weight:bold;">${profitSign}${data.totalProfit.toLocaleString()} 원</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('dashboardModal').style.display = 'flex';
+    }
+
+    function closeUserDashboard(event) {
+        if (!event || event.target.id === 'dashboardModal' || event.type === 'click') {
+            document.getElementById('dashboardModal').style.display = 'none';
+        }
+    }
+
+    function calculateAll() {
+        const currentUser = document.getElementById('userSelect').value;
+        const currentStock = document.getElementById('stockSelect').value;
+        
+        const activeStockObj = stocks.find(s => s.name === currentStock);
+        const titleCodeText = (activeStockObj && activeStockObj.code) ? ` (${activeStockObj.code})` : '';
+
+        if (!currentUser || !currentStock) {
+            document.getElementById('viewTitle').innerHTML = `조회 계좌: [${currentUser || '없음'}]<br>선택 종목: [${currentStock || '없음'}]`;
+            document.getElementById('tradeLogBody').innerHTML = '';
+            document.getElementById('currentBalance').innerText = "0 원";
+            document.getElementById('totalQuantity').innerText = "0 주";
+            document.getElementById('avgPrice').innerText = "0 원";
+            document.getElementById('totalProfit').innerText = "0 원";
+            document.getElementById('currentPrice').value = '';
+            globalCalculatedAvgPrice = 0;
+            globalCalculatedQty = 0;
+            calculateRealtimeMetrics();
+            return;
+        }
+
+        document.getElementById('viewTitle').innerHTML = `조회 계좌: [${currentUser}]<br>선택 종목: [${currentStock}${titleCodeText}]`;
+
+        if (activeStockObj && activeStockObj.code) {
+            fetchCurrentPrice(activeStockObj.code);
+        } else {
+            document.getElementById('currentPrice').value = stockPrices[currentStock] || '';
+        }
+
+        const seedMoneyRaw = document.getElementById('seedMoney').value.replace(/,/g, '');
+        const seedMoney = parseFloat(seedMoneyRaw) || 0;
+        const tbody = document.getElementById('tradeLogBody');
+        tbody.innerHTML = ''; 
+
+        calculateCurrentBalance(currentUser, currentStock, seedMoney);
+
+        let currentQty = 0;             
+        let currentAvgPrice = 0;        
+        let totalProfit = 0;            
+
+        tradeLogs.forEach((log, globalIndex) => {
+            if (log.user !== currentUser || log.stock !== currentStock) return; 
+
+            let tradeAmount = log.price * log.qty; 
+            let errorText = "";
+            let profit = "-";
+            let profitRate = "-";
+
+            if (log.type === '매수') {
+                let totalCost = (currentAvgPrice * currentQty) + tradeAmount;
+                currentQty += log.qty;
+                currentAvgPrice = currentQty > 0 ? Math.round(totalCost / currentQty) : 0;
+            } else if (log.type === '매도') {
+                if (log.qty > currentQty) {
+                    errorText = "수량 부족";
+                } else {
+                    profit = (log.price - currentAvgPrice) * log.qty;
+                    profitRate = currentAvgPrice > 0 ? ((log.price - currentAvgPrice) / currentAvgPrice * 100).toFixed(2) + "%" : "0.00%";
+                    totalProfit += profit;
+                    currentQty -= log.qty;
+                    if (currentQty === 0) currentAvgPrice = 0;
+                }
+            }
+
+            let profitClass = "";
+            let profitDisplay = "";
+            if (log.type === '매도' && errorText === "") {
+                let formattedProfit = profit.toLocaleString() + " 원";
+                if (profit > 0) { profitClass = "plus"; formattedProfit = "+" + formattedProfit; }
+                else if (profit < 0) { profitClass = "minus"; }
+                profitDisplay = `<span class="${profitClass}" style="font-weight:bold; font-size:12px;">${formattedProfit}<br>(${profitRate})</span>`;
+            }
+
+            const trMain = document.createElement('tr');
+            trMain.className = "row-main";
+            
+            trMain.innerHTML = `
+                <td class="col-1 clickable-date" onclick="showActionModal(${globalIndex})">${log.date}</td>
+                <td class="col-2 ${log.type === '매수' ? 'type-buy' : 'type-sell'}" style="font-size:14px; vertical-align:middle;">${log.type}</td>
+                <td class="col-3">
+                    <span class="lbl-desc">정산 금액</span>
+                    <span class="val-data">${tradeAmount.toLocaleString()} 원</span>
+                </td>
+            `;
+
+            const trSub = document.createElement('tr');
+            trSub.className = "row-sub";
+            
+            let avgPriceText = errorText ? "<span class='minus'>수량부족</span>" : `${currentAvgPrice.toLocaleString()}원`;
+            
+            trSub.innerHTML = `
+                <td class="col-1" style="border-top:none; text-align: center;">
+                    <span class="lbl-desc">평단 / 잔여</span>
+                    <span class="val-data" style="color:#4a5568;">${avgPriceText}<br>${currentQty.toLocaleString()}주</span>
+                </td>
+                <td class="col-2" style="border-top:none; text-align: center;">
+                    <span class="lbl-desc">체결가 / 수량</span>
+                    <span class="val-data" style="color:#718096;">${log.price.toLocaleString()}원<br>${log.qty.toLocaleString()}주</span>
+                </td>
+                <td class="col-3" style="border-top:none;">
+                    <div style="text-align:right;">
+                        ${profitDisplay ? `<span class="lbl-desc">매도 손익</span>${profitDisplay}` : '<span class="lbl-desc" style="color:#cbd5e0;">-</span>'}
+                    </div>
+                </td>
+            `;
+
+            tbody.appendChild(trMain);
+            tbody.appendChild(trSub);
+        });
+
+        document.getElementById('totalQuantity').innerText = currentQty.toLocaleString() + " 주";
+        document.getElementById('avgPrice').innerText = currentAvgPrice.toLocaleString() + " 원";
+        
+        const totalProfitSpan = document.getElementById('totalProfit');
+        totalProfitSpan.innerText = totalProfit.toLocaleString() + " 원";
+        totalProfitSpan.className = totalProfit > 0 ? "plus" : (totalProfit < 0 ? "minus" : "");
+
+        globalCalculatedAvgPrice = currentAvgPrice;
+        globalCalculatedQty = currentQty;
+        calculateRealtimeMetrics();
+    }
+</script>
+</body>
+</html>
